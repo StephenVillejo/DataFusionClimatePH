@@ -660,44 +660,32 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
   
   
   # Compile the marginal log-likelihoods
-  compile_mlik_data1[[1]] <- res_sim_data_1[[1]]$fit_res$mlik[1,1]
-  compile_mlik_data1[[2]] <- res_sim_data_1[[2]]$fit_res$mlik[1,1]
-  compile_mlik_data1[[3]] <- res_sim_data_1[[3]]$fit_res$mlik[1,1]
-  compile_mlik_data1[[4]] <- res_sim_data_1[[4]]$fit_res$mlik[1,1]
-  compile_mlik_data1[[5]] <- res_sim_data_1[[5]]$fit_res$mlik[1,1]
-  compile_mlik_data1[[6]] <- res_sim_data_1[[6]]$fit_res$mlik[1,1]
-  
+  for(i in 1:6){
+    compile_mlik_data1[[i]] <- res_sim_data_1[[i]]$fit_res$mlik[1,1]
+  }
   mliks_method_data1 <- unlist(compile_mlik_data1)
   bma.w.method_data1 <- exp(mliks_method_data1 - max(mliks_method_data1))
   bma.w.method_data1 <- bma.w.method_data1/sum(bma.w.method_data1)
-  
-  compile_mlik_data2[[1]] <- res_sim_data_2[[1]]$fit_res$mlik[1,1]
-  compile_mlik_data2[[2]] <- res_sim_data_2[[2]]$fit_res$mlik[1,1]
-  compile_mlik_data2[[3]] <- res_sim_data_2[[3]]$fit_res$mlik[1,1]
-  compile_mlik_data2[[4]] <- res_sim_data_2[[4]]$fit_res$mlik[1,1]
-  compile_mlik_data2[[5]] <- res_sim_data_2[[5]]$fit_res$mlik[1,1]
-  compile_mlik_data2[[6]] <- res_sim_data_2[[6]]$fit_res$mlik[1,1]
-  
+  for(i in 1:6){
+    compile_mlik_data2[[i]] <- res_sim_data_2[[i]]$fit_res$mlik[1,1]
+  }
   mliks_method_data2 <- unlist(compile_mlik_data2)
   bma.w.method_data2 <- exp(mliks_method_data2 - max(mliks_method_data2))
   bma.w.method_data2 <- bma.w.method_data2/sum(bma.w.method_data2)
-  
-  compile_mlik_data3[[1]] <- res_sim_data_3[[1]]$fit_res$mlik[1,1]
-  compile_mlik_data3[[2]] <- res_sim_data_3[[2]]$fit_res$mlik[1,1]
-  compile_mlik_data3[[3]] <- res_sim_data_3[[3]]$fit_res$mlik[1,1]
-  compile_mlik_data3[[4]] <- res_sim_data_3[[4]]$fit_res$mlik[1,1]
-  compile_mlik_data3[[5]] <- res_sim_data_3[[5]]$fit_res$mlik[1,1]
-  compile_mlik_data3[[6]] <- res_sim_data_3[[6]]$fit_res$mlik[1,1]
-  
+  for(i in 1:6){
+    compile_mlik_data3[[i]] <- res_sim_data_3[[i]]$fit_res$mlik[1,1]
+  }  
   mliks_method_data3 <- unlist(compile_mlik_data3)
   bma.w.method_data3 <- exp(mliks_method_data3 - max(mliks_method_data3))
   bma.w.method_data3 <- bma.w.method_data3/sum(bma.w.method_data3)
   
-  
+  # Identify the model with the highest weight
   index_model[[1]] <- which(compile_mlik_data1 == max(unlist(compile_mlik_data1)))
   index_model[[2]] <- which(compile_mlik_data2 == max(unlist(compile_mlik_data2)))
   index_model[[3]] <- which(compile_mlik_data3 == max(unlist(compile_mlik_data3)))
-  
+
+
+  # Compute prediction scores for the stations-only model
   I_x_monsonly_1 = compute_I_x_v3(model = res_mons_only_1$fit_res,
                                   data = sim_data_1$px,
                                   stations = sim_data_1$monitors_data)
@@ -707,7 +695,8 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
   I_x_monsonly_3 = compute_I_x_v3(model = res_mons_only_3$fit_res,
                                   data = sim_data_3$px,
                                   stations = sim_data_3$monitors_data)
-                               
+
+  # Compute prediction scores for the regression calibration model
   I_x_regcalib_1 = compute_I_x_regcalib(model = res_regcalib_1,
                                         data = sim_data_1$px,
                                         stations = sim_data_1$monitors_data)
@@ -718,10 +707,7 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
                                         data = sim_data_3$px,
                                         stations = sim_data_3$monitors_data)
                                
-                         
-  
-
-  
+  # Compute prediction scores for the proposed data fusion model
   I_x_datafus_1 = compute_I_x_datafus(model_list = res_sim_data_1,
                                       weights = bma.w.method_data1,
                                       data = sim_data_1$px,
@@ -738,94 +724,72 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
                                       stations = sim_data_3$monitors_data,
                                       ind_model = index_model[[3]])
   
-  
+  # Compile the average squared-errors for estimated x(s) for stations-only model
   compile_I_x_monsonly[[1]] <- I_x_monsonly_1$I_x
   compile_I_x_monsonly[[2]] <- I_x_monsonly_2$I_x
   compile_I_x_monsonly[[3]] <- I_x_monsonly_3$I_x
-  
+  # Compile the average squared-errors for estimated x(s) for regression calibration model
   compile_I_x_regcalib[[1]] <- I_x_regcalib_1$I_x
   compile_I_x_regcalib[[2]] <- I_x_regcalib_2$I_x
   compile_I_x_regcalib[[3]] <- I_x_regcalib_3$I_x
-  
+  # Compile the average squared-errors for estimated x(s) for the proposed data fusion model
   compile_I_x_datafusion[[1]] <- I_x_datafus_1$I_x
   compile_I_x_datafusion[[2]] <- I_x_datafus_2$I_x
   compile_I_x_datafusion[[3]] <- I_x_datafus_3$I_x
-  
+
+  # Compile the average DS scores for w_1(s) for stations-only model
   compile_I_x_v2_monsonly[[1]] <- I_x_monsonly_1$I_x_v2
   compile_I_x_v2_monsonly[[2]] <- I_x_monsonly_2$I_x_v2
   compile_I_x_v2_monsonly[[3]] <- I_x_monsonly_3$I_x_v2
-
+  # Compile the average DS scores for w_1(s) for regression calibration model
   compile_I_x_v2_regcalib[[1]] <- I_x_regcalib_1$I_x_v2
   compile_I_x_v2_regcalib[[2]] <- I_x_regcalib_2$I_x_v2
   compile_I_x_v2_regcalib[[3]] <- I_x_regcalib_3$I_x_v2
-  
+  # Compile the average DS scores for w_1(s) for proposed data fusion model
   compile_I_x_v2_datafusion[[1]] <- I_x_datafus_1$I_x_v2
   compile_I_x_v2_datafusion[[2]] <- I_x_datafus_2$I_x_v2
   compile_I_x_v2_datafusion[[3]] <- I_x_datafus_3$I_x_v2
-  
-  
-  compile_I_x_v2_field_monsonly[[1]] <- I_x_monsonly_1$I_x_v2_field
-  compile_I_x_v2_field_monsonly[[2]] <- I_x_monsonly_2$I_x_v2_field
-  compile_I_x_v2_field_monsonly[[3]] <- I_x_monsonly_3$I_x_v2_field
-  
-  compile_I_x_v2_field_datafusion[[1]] <- I_x_datafus_1$I_x_v2_field
-  compile_I_x_v2_field_datafusion[[2]] <- I_x_datafus_2$I_x_v2_field
-  compile_I_x_v2_field_datafusion[[3]] <- I_x_datafus_3$I_x_v2_field
-  
-  compile_I_x_v2_field_regcalib[[1]] <- I_x_regcalib_1$I_x_v2_field
-  compile_I_x_v2_field_regcalib[[2]] <- I_x_regcalib_2$I_x_v2_field
-  compile_I_x_v2_field_regcalib[[3]] <- I_x_regcalib_3$I_x_v2_field
-  
+
+  # Compile the average posterior SD of estimated x(s) for stations-only model
   compile_I_Ave_SD_monsonly[[1]] <- I_x_monsonly_1$ave_sd
   compile_I_Ave_SD_monsonly[[2]] <- I_x_monsonly_2$ave_sd
   compile_I_Ave_SD_monsonly[[3]] <- I_x_monsonly_3$ave_sd
-  
+  # Compile the average posterior SD of estimated x(s) for regression calibration model
   compile_I_Ave_SD_regcalib[[1]] <- I_x_regcalib_1$ave_sd
   compile_I_Ave_SD_regcalib[[2]] <- I_x_regcalib_2$ave_sd
   compile_I_Ave_SD_regcalib[[3]] <- I_x_regcalib_3$ave_sd
-  
+  # Compile the average posterior SD of estimated x(s) for proposed data fusion model
   compile_I_Ave_SD_datafusion[[1]] <- I_x_datafus_1$ave_sd
   compile_I_Ave_SD_datafusion[[2]] <- I_x_datafus_2$ave_sd
   compile_I_Ave_SD_datafusion[[3]] <- I_x_datafus_3$ave_sd
   
-  
+  # Compile the relative error of estimated x(s) for stations-only model
   compile_P_x_monsonly[[1]] <- I_x_monsonly_1$P_x
   compile_P_x_monsonly[[2]] <- I_x_monsonly_2$P_x
   compile_P_x_monsonly[[3]] <- I_x_monsonly_3$P_x
-  
+  # Compile the relative error of estimated x(s) for regression calibration model
   compile_P_x_regcalib[[1]] <- I_x_regcalib_1$P_x
   compile_P_x_regcalib[[2]] <- I_x_regcalib_2$P_x
   compile_P_x_regcalib[[3]] <- I_x_regcalib_3$P_x
-  
+  # Compile the relative error of estimated x(s) for proposed data fusion model
   compile_P_x_datafusion[[1]] <- I_x_datafus_1$P_x
   compile_P_x_datafusion[[2]] <- I_x_datafus_2$P_x
   compile_P_x_datafusion[[3]] <- I_x_datafus_3$P_x
   
-
+  # Compile the correlation between x(s) and estimated x(s) for stations-only model
   compile_Corr_x_monsonly[[1]] <- I_x_monsonly_1$Cor
   compile_Corr_x_monsonly[[2]] <- I_x_monsonly_2$Cor
   compile_Corr_x_monsonly[[3]] <- I_x_monsonly_3$Cor
-  
+  # Compile the correlation between x(s) and estimated x(s) for regression calibration model
   compile_Corr_x_regcalib[[1]] <- I_x_regcalib_1$Cor
   compile_Corr_x_regcalib[[2]] <- I_x_regcalib_2$Cor
   compile_Corr_x_regcalib[[3]] <- I_x_regcalib_3$Cor
-  
+  # Compile the correlation between x(s) and estimated x(s) for proposed data fusion model
   compile_Corr_x_datafusion[[1]] <- I_x_datafus_1$Cor
   compile_Corr_x_datafusion[[2]] <- I_x_datafus_2$Cor
   compile_Corr_x_datafusion[[3]] <- I_x_datafus_3$Cor
-  
-  compile_Time_datafusion[[1]] <- res_sim_data_1[[index_model[[1]]]]$time
-  compile_Time_datafusion[[2]] <- res_sim_data_2[[index_model[[2]]]]$time
-  compile_Time_datafusion[[3]] <- res_sim_data_3[[index_model[[3]]]]$time
-  
-  compile_Time_monsonly[[1]] <- res_mons_only_1$time
-  compile_Time_monsonly[[2]] <- res_mons_only_2$time
-  compile_Time_monsonly[[3]] <- res_mons_only_3$time
-  
-  compile_Time_regcalib[[1]] <- res_regcalib_1$time
-  compile_Time_regcalib[[2]] <- res_regcalib_2$time
-  compile_Time_regcalib[[3]] <- res_regcalib_3$time
-  
+
+  # Compile the posterior estimates for the stations-only model
   for(i in 1:3){
     res_temp <- get(paste0("res_mons_only_",i))
     compile_paramestimates_monsonly[[i]] <- list(inla.rmarginal(200, res_temp$fit_res$marginals.fixed$beta_0),
@@ -834,7 +798,20 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
                                                  inla.rmarginal(200, res_temp$fit_res$marginals.hyperpar$`Stdev for spde`),
                                                  inla.rmarginal(200, res_temp$fit_res$marginals.hyperpar$`Precision for the Gaussian observations`))
   }
+
+  # Compile the posterior estimates for the regression calibration model
+  for(i in 1:3){
+    res_temp <- get(paste0("res_regcalib_",i))
+    compile_paramestimates_regcalib[[i]] <- list(inla.rmarginal(200, res_temp$fit_res$marginals.fixed$beta_0),
+                                                 inla.rmarginal(200, res_temp$fit_res$marginals.fixed$beta_1),
+                                                 inla.rmarginal(200, res_temp$fit_res$marginals.hyperpar$`Range for spde`),
+                                                 inla.rmarginal(200, res_temp$fit_res$marginals.hyperpar$`Stdev for spde`),
+                                                 inla.rmarginal(200, res_temp$fit_res$marginals.hyperpar$`Precision for the Gaussian observations`),
+                                                 inla.rmarginal(200, res_temp$fit_res$marginals.fixed$beta_2))
+                                        
+  }
   
+  # Compile the posterior estimates for the proposed data fusion model conditional on the alpha_1 with the highest weight
   for(i in 1:3){
     res_temp <- get(paste0("res_sim_data_",i))
     res_temp <- res_temp[[index_model[[i]]]]
@@ -848,9 +825,8 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
                                                    inla.rmarginal(200, res_temp$fit_res$marginals.hyperpar$`Precision for the Gaussian observations[2]`))
   }
   
-  
+  # Compile the posterior estimates for the proposed data fusion model conditional on all alpha_1 values 
   compile_paramestimates_datafusion_temp <- vector(mode = "list", length = 3)
-  
   for(i in 1:3){
     res_temp <- get(paste0("res_sim_data_",i))
     for(j in 1:6){
@@ -865,7 +841,8 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
                                                                inla.rmarginal(200, res_temp2$fit_res$marginals.hyperpar$`Precision for the Gaussian observations[2]`))
     }
   }
-  
+
+  # Compile the model-averaged posterior estimates for the proposed data fusion model
   for(i in 1:3){
     temp <- compile_paramestimates_datafusion_temp[[i]]
     weights <- get(paste0("bma.w.method_data",i))
@@ -875,17 +852,7 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
       
     }
   }
-  
-  for(i in 1:3){
-    res_temp <- get(paste0("res_regcalib_",i))
-    compile_paramestimates_regcalib[[i]] <- list(inla.rmarginal(200, res_temp$fit_res$marginals.fixed$beta_0),
-                                                 inla.rmarginal(200, res_temp$fit_res$marginals.fixed$beta_1),
-                                                 inla.rmarginal(200, res_temp$fit_res$marginals.hyperpar$`Range for spde`),
-                                                 inla.rmarginal(200, res_temp$fit_res$marginals.hyperpar$`Stdev for spde`),
-                                                 inla.rmarginal(200, res_temp$fit_res$marginals.hyperpar$`Precision for the Gaussian observations`),
-                                                 inla.rmarginal(200, res_temp$fit_res$marginals.fixed$beta_2))
-                                        
-  }
+
   
   return(out = list(compile_I_x_monsonly = compile_I_x_monsonly,
                     compile_I_x_regcalib = compile_I_x_regcalib,
@@ -896,9 +863,6 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
                     compile_Corr_x_monsonly = compile_Corr_x_monsonly,
                     compile_Corr_x_regcalib = compile_Corr_x_regcalib,
                     compile_Corr_x_datafusion = compile_Corr_x_datafusion,
-                    compile_Time_datafusion = compile_Time_datafusion,
-                    compile_Time_regcalib = compile_Time_regcalib,
-                    compile_Time_monsonly = compile_Time_monsonly,
                     compile_paramestimates_monsonly = compile_paramestimates_monsonly,
                     compile_paramestimates_regcalib = compile_paramestimates_regcalib,
                     compile_paramestimates_datafusion = compile_paramestimates_datafusion,
@@ -906,9 +870,6 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
                     compile_mlik_data2 = compile_mlik_data2,
                     compile_mlik_data3 = compile_mlik_data3,
                     index_model = index_model,
-                    compile_I_x_v2_field_monsonly = compile_I_x_v2_field_monsonly,
-                    compile_I_x_v2_field_regcalib = compile_I_x_v2_field_regcalib,
-                    compile_I_x_v2_field_datafusion = compile_I_x_v2_field_datafusion, 
                     compile_I_x_v2_monsonly = compile_I_x_v2_monsonly,
                     compile_I_x_v2_regcalib = compile_I_x_v2_regcalib,
                     compile_I_x_v2_datafusion = compile_I_x_v2_datafusion,
