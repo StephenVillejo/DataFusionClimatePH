@@ -15,12 +15,11 @@ library(parallel)
 cluster = F
 
 if(cluster == F){
-  source(here::here("/Users/stephenjunvillejo/Documents/Phd Studies - University of Glasgow/PhD Dissert/Model runs/R/INLABRU/Simulations/RegressionCalibration/utils/stephen_utils.R"))
-  source(here::here("/Users/stephenjunvillejo/Documents/Phd Studies - University of Glasgow/PhD Dissert/Model runs/R/INLABRU/Simulations/RegressionCalibration/utils/BasicFunctions.R"))
+  source(here::here("Functions.R"))
   save.path = "/Users/stephenjunvillejo/Documents/temp2/"
 }else{
-  source(here::here("/home/pgrad2/2510006v/INLABRU/utils/stephen_utils.R"))
-  source(here::here("/home/pgrad2/2510006v/INLABRU/utils/BasicFunctions.R"))
+  source(here::here("/home/pgrad2/2510006v/INLABRU/utils/Functions.R"))
+  save.path = "/home/pgrad2/2510006v/INLABRU/SimOutput/"
 }
 
 
@@ -40,14 +39,11 @@ true.vals <- list(stage_1 = list(rho = 2, # range parameter of the spatial field
                                  sigma_error = sigma_error)) # marginal standard deviation of the error field
 ncores = detectCores()
 
-
-Sim_result <- Full_sim_ortho_error(n_sim = 20,
+Sim_result <- Full_sim_ortho_error(n_sim = 500, # number of simulation scenarios
                                    max_iter = 10,
                                    tolerance = 0.1)
 
-group = "Z"
-
-save(Sim_result, file = paste0(save.path,"New_Group_",group,".RData"))
+save(Sim_result, file = paste0(save.path,".RData"))
 
 
 
