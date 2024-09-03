@@ -8,6 +8,7 @@ book.rMatern <- function(n, coords, sigma=1, range, kappa = sqrt(8*nu)/range, va
                         matrix(rnorm(nrow(coords)*n), ncol=n))))
 }
 
+# Simulate data
 Sim_Data_Ortho_error_v3 <- function(true.vals){
   
   ## Load the shapefile
