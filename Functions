@@ -487,3 +487,67 @@ compute_I_x_regcalib <- function(model = model,
 
 }
 
+
+
+########################################################################
+# Compute posterior prediction scores for proposed model
+########################################################################
+
+compute_I_x_datafus <- function(model_list = res_sim_data_1,
+                                weights = bma.w.method_data1,
+                                data = sim_data_1$px,
+                                stations = sim_data_1$monitors_data,
+                                ind_model = index_model){
+
+  # Compute the predictions of x(s) for each conditional INLA model (conditional an \alpha_1)
+  preds_list <- lapply(1:6, function(i){
+    predict(model_list[[i]]$fit_res,
+            newdata = data,
+            formula = ~ beta_0 + beta_1 + spde)
+  })
+  preds_mean <- lapply(1:6, function(i){
+    preds_list[[i]]$mean
+  })
+  # Compute the model-averaged predictions of x(s)
+  preds_mean <- matrix(unlist(preds_mean), ncol = 6, byrow = FALSE)
+  preds_mean_BMA <- preds_mean[,1]*weights[1] + preds_mean[,2]*weights[2] + preds_mean[,3]*weights[3] +
+    preds_mean[,4]*weights[4] + preds_mean[,5]*weights[5] + preds_mean[,6]*weights[6]
+
+  # Compute the SD of the model-averaged predictions
+  preds_sd <- lapply(1:6, function(i){
+    preds_list[[i]]$sd
+  })
+  preds_sd <- matrix(unlist(preds_sd), ncol = 6, byrow = FALSE)
+  preds_sd_BMA <- sqrt((preds_sd[,1]^2*weights[1]^2) + (preds_sd[,2]^2*weights[2]^2) + (preds_sd[,3]^2*weights[3]^2) +
+                         (preds_sd[,4]^2*weights[4]^2) + (preds_sd[,5]^2*weights[5]^2) + (preds_sd[,6]^2*weights[6]^2))
+  
+  data$pred.x = preds_mean_BMA
+  data$sq.diff = (data$xvar - data$pred.x)^2 # squared error
+  data$absP.error = abs((data$xvar - data$pred.x)/data$xvar) # relative error
+  data$pred.SD = preds_sd_BMA # posterior uncertainty
+  
+  # Compute the DS score on the stations data using the model with the highest weight
+  samples <- 1/inla.rmarginal(200,model_list[[ind_model]]$fit_res$marginals.hyperpar$`Precision for the Gaussian observations`)
+  post_mean <- mean(samples)
+  post_var <- var(samples)
+  preds <- predict(model_list[[ind_model]]$fit_res,
+                   newdata = stations,
+                   formula = ~ beta_0 + beta_1 + spde)
+  stations$DS_score <- (stations$xvar - preds$mean)^2 / (post_mean + preds$sd^2) + log(post_mean + preds$sd^2)
+  
+  
+  return(out = list(I_x = mean(data$sq.diff), # average squared-error for x(s) estimates
+                    I_x_v2 = mean(stations$DS_score), # average DS score
+                    P_x = mean(data$absP.error), # average relative error for x(s)
+                    ave_sd = mean(data$pred.SD), # average posterior uncertainty
+                    pred.x = data$pred.x,
+                    pred.SD = data$pred.SD,
+                    sq.diff.vec = data$sq.diff,
+                    absP.error.vec = data$absP.error,
+                    Cor = cor(data$xvar, preds_mean_BMA),
+                    true.x = data$xvar))
+
+}
+
+
+
