@@ -181,6 +181,100 @@ Fit_Mons_only_v3 <- function(data = sim_data,
 } 
 
 
+########################################################################
+# Fit the regression calibration model
+########################################################################
+
+
+Fit_Regcalib_only_v2 <- function(data = sim_data,
+                                 max_iter = max_iter,
+                                 tolerance = tolerance,
+                                 matching_priors = TRUE){
+                             
+  
+  monitors_data <- data$monitors_data
+  areas <- data$areas
+  px <- data$px
+  boundary <- st_union(areas)
+
+  mesh <- fm_mesh_2d(boundary=boundary,
+                     max.edge=c(0.075, 0.5),
+                     min.angle=c(30, 21),
+                     max.n=c(48000, 16000), ## Safeguard against large meshes.
+                     max.n.strict=c(128000, 128000), ## Don't build a huge mesh!
+                     cutoff=0.022, ## Filter away adjacent points.
+                     offset=c(0.17, 0.685))
+                          
+  # interpolate the values of the numerical model on the location of the stations
+  
+  
+  start = Sys.time()
+  cmp = satellite ~ -1 + spde(main = geometry, model = matern) + beta_0(1) 
+  matern = inla.spde2.pcmatern(mesh,
+                               prior.range = c(1, 0.5),
+                               prior.sigma = c(1, 0.5),
+                               constr = FALSE)
+  fit_interp = bru(components = cmp,
+                   data = data$numerical_models_data,
+                   family = "Gaussian",
+                   control.family = list(hyper = list(prec = list(prior = "pc.prec", param = c(1, 0.5)))),
+                   options = list(control.inla = list(int.strategy = "eb"),
+                                  bru_verbose = 0,
+                                  bru_max_iter = max_iter,
+                                  bru_method=list(rel_tol = tolerance)))
+  preds <- predict(fit_interp,
+                   newdata = monitors_data ,
+                   formula =~ spde + beta_0)
+  monitors_data$pred_satellite <- preds$mean
+  
+  if(informative == TRUE){
+    
+    # SPDE model
+    matern = inla.spde2.pcmatern(mesh,
+                                 prior.range = c(true.vals$stage_1$rho, 0.5),
+                                 prior.sigma = c(true.vals$stage_1$sigma_omega, 0.5),
+                                 constr = FALSE)
+    
+  }else{
+    
+    # SPDE model
+    matern = inla.spde2.pcmatern(mesh,
+                                 prior.range = c(.5, 0.5),
+                                 prior.sigma = c(1, 0.5),
+                                 constr = FALSE)
+  }
+  
+  cmp = w ~ -1 + spde(main = geometry, model = matern) + beta_0(1) + beta_1(z, model = "linear") +
+    beta_2(pred_satellite, model = "linear")
+ 
+  if(informative == TRUE){
+    fit_res = bru(components = cmp,
+                  data = monitors_data,
+                  family = "Gaussian",
+                  control.family = list(hyper = list(prec = list(prior = "pc.prec", param = c(true.vals$stage_1$sigma_e, 0.5)))),
+                  options = list(control.inla = list(int.strategy = "eb"),
+                                 bru_verbose = 0,
+                                 bru_max_iter = max_iter,
+                                 bru_method=list(rel_tol = tolerance)))
+  }else{
+    fit_res = bru(components = cmp,
+                  data = monitors_data,
+                  family = "Gaussian",
+                  options = list(control.inla = list(int.strategy = "eb"),
+                                 bru_verbose = 0,
+                                 bru_max_iter = max_iter,
+                                 control.family = list(hyper = list(prec = list(prior = "pc.prec", param = c(1.5, 0.5)))),
+                                 bru_method=list(rel_tol = tolerance)))
+  }
+  end = Sys.time()
+  
+  
+  return(out = list(fit_res = fit_res,
+                    fit_interp = fit_interp,
+                    time = end - start))
+  
+} 
+
 
 
 
