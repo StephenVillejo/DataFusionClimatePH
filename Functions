@@ -884,3 +884,258 @@ One_sim_run_ortho_error <- function(sim_data = sim_data,
 
 
 
+
+Full_sim_ortho_error <- function(n_sim = n_sim,
+                                 max_iter = max_iter,
+                                 tolerance = tolerance){
+
+  # Compile posterior predictions scores and posterior estimates for model with MATCHING priors
+  # The "_info" in the object names doesn't truly mean "informative priors", but the use of matching priors
+  compile_I_x_monsonly_info <- vector("list", length = 3)
+  compile_I_x_regcalib_info <- vector("list", length = 3)
+  compile_I_x_datafusion_info <- vector("list", length = 3)
+  compile_I_x_v2_monsonly_info <- vector("list", length = 3)
+  compile_I_x_v2_regcalib_info <- vector("list", length = 3)
+  compile_I_x_v2_datafusion_info <- vector("list", length = 3)
+  compile_Ave_SD_monsonly_info <- vector("list", length = 3)
+  compile_Ave_SD_regcalib_info <- vector("list", length = 3)
+  compile_Ave_SD_datafus_info <- vector("list", length = 3)
+  compile_P_x_monsonly_info <- vector("list", length = 3)
+  compile_P_x_regcalib_info <- vector("list", length = 3)
+  compile_P_x_datafusion_info <- vector("list", length = 3)
+  compile_Corr_x_monsonly_info <- vector("list", length = 3)
+  compile_Corr_x_regcalib_info <- vector("list", length = 3)
+  compile_Corr_x_datafusion_info <- vector("list", length = 3)
+  compile_paramestimates_datafusion_info <- vector("list", length = 3)
+  compile_paramestimates_regcalib_info <- vector("list", length = 3)
+  compile_paramestimates_monsonly_info <- vector("list", length = 3)  
+  for(i in 1:3){
+    compile_paramestimates_datafusion_info[[i]] <- vector("list", length = 8)
+    compile_paramestimates_regcalib_info[[i]] <- vector("list", length = 6)
+    compile_paramestimates_monsonly_info[[i]] <- vector("list", length = 5)
+  }
+
+  # Compile posterior predictions scores and posterior estimates for model with NON-MATCHING priors
+  # The "_noninfo" in the object names doesn't truly mean "noninformative priors", but the use of non-matching priors
+  compile_I_x_monsonly_noninfo <- vector("list", length = 3)
+  compile_I_x_regcalib_noninfo <- vector("list", length = 3)
+  compile_I_x_datafusion_noninfo <- vector("list", length = 3)
+  compile_I_x_v2_monsonly_noninfo <- vector("list", length = 3)
+  compile_I_x_v2_regcalib_noninfo <- vector("list", length = 3)
+  compile_I_x_v2_datafusion_noninfo <- vector("list", length = 3)
+  compile_Ave_SD_monsonly_noninfo <- vector("list", length = 3)
+  compile_Ave_SD_regcalib_noninfo <- vector("list", length = 3)
+  compile_Ave_SD_datafus_noninfo <- vector("list", length = 3)
+  compile_P_x_monsonly_noninfo <- vector("list", length = 3)
+  compile_P_x_regcalib_noninfo <- vector("list", length = 3)
+  compile_P_x_datafusion_noninfo <- vector("list", length = 3)
+  compile_Corr_x_monsonly_noninfo <- vector("list", length = 3)
+  compile_Corr_x_regcalib_noninfo <- vector("list", length = 3)
+  compile_Corr_x_datafusion_noninfo <- vector("list", length = 3)
+  compile_paramestimates_datafusion_noninfo <- vector("list", length = 3)
+  compile_paramestimates_regcalib_noninfo <- vector("list", length = 3)
+  compile_paramestimates_monsonly_noninfo <- vector("list", length = 3)
+  for(i in 1:3){
+    compile_paramestimates_datafusion_noninfo[[i]] <- vector("list", length = 8)
+    compile_paramestimates_regcalib_noninfo[[i]] <- vector("list", length = 6)
+    compile_paramestimates_monsonly_noninfo[[i]] <- vector("list", length = 5)
+  }
+
+  # Compile all marginal log-likelihoods
+  compile_mlik_data1_info <- vector("list", length = 6)
+  compile_mlik_data2_info <- vector("list", length = 6)
+  compile_mlik_data3_info <- vector("list", length = 6)
+  compile_mlik_data1_noninfo <- vector("list", length = 6)
+  compile_mlik_data2_noninfo <- vector("list", length = 6)
+  compile_mlik_data3_noninfo <- vector("list", length = 6)
+
+  # Compile the index for conditional INLA model (proposed method) with highest weight
+  compile_index_model_info <- vector("list", length = 3)
+  compile_index_model_noninfo <- vector("list", length = 3)
+
+  # Compile all BMA weights
+  compile_weights_data1_info <- vector("list", length = 6)
+  compile_weights_data2_info <- vector("list", length = 6)
+  compile_weights_data3_info <- vector("list", length = 6)
+  compile_weights_data1_noninfo <- vector("list", length = 6)
+  compile_weights_data2_noninfo <- vector("list", length = 6)
+  compile_weights_data3_noninfo <- vector("list", length = 6)
+  
+  for(n in 1:n_sim){
+    
+    sim_data <- Sim_Data_Ortho_error_v3()
+    one_sim_informative <- One_sim_run_ortho_error(sim_data = sim_data,
+                                                   max_iter = max_iter,
+                                                   tolerance = tolerance,
+                                                   matching_priors = TRUE)
+    one_sim_noninformative <- One_sim_run_ortho_error(sim_data = sim_data,
+                                                      max_iter = max_iter,
+                                                      tolerance = tolerance,
+                                                      matching_priors = FALSE)
+    
+    cat("Sim = ", n," out of ",n_sim, sep="","\n" )
+    
+    for(i in 1:3){
+      
+      # results for matching priors
+      
+      compile_I_x_monsonly_info[[i]] <- c(compile_I_x_monsonly_info[[i]], one_sim_informative$compile_I_x_monsonly[[i]])
+      compile_I_x_regcalib_info[[i]] <- c(compile_I_x_regcalib_info[[i]], one_sim_informative$compile_I_x_regcalib[[i]])
+      compile_I_x_datafusion_info[[i]] <- c(compile_I_x_datafusion_info[[i]], one_sim_informative$compile_I_x_datafusion[[i]])
+      
+      compile_I_x_v2_monsonly_info[[i]] <- c(compile_I_x_v2_monsonly_info[[i]], one_sim_informative$compile_I_x_v2_monsonly[[i]])
+      compile_I_x_v2_regcalib_info[[i]] <- c(compile_I_x_v2_regcalib_info[[i]], one_sim_informative$compile_I_x_v2_regcalib[[i]])
+      compile_I_x_v2_datafusion_info[[i]] <- c(compile_I_x_v2_datafusion_info[[i]], one_sim_informative$compile_I_x_v2_datafusion[[i]])
+      
+      compile_Ave_SD_monsonly_info[[i]] <- c(compile_Ave_SD_monsonly_info[[i]], one_sim_informative$compile_I_Ave_SD_monsonly[[i]])
+      compile_Ave_SD_regcalib_info[[i]] <- c(compile_Ave_SD_regcalib_info[[i]], one_sim_informative$compile_I_Ave_SD_regcalib[[i]])
+      compile_Ave_SD_datafus_info[[i]] <- c(compile_Ave_SD_datafus_info[[i]], one_sim_informative$compile_I_Ave_SD_datafusion[[i]])
+      
+      compile_P_x_monsonly_info[[i]] <- c(compile_P_x_monsonly_info[[i]], one_sim_informative$compile_P_x_monsonly[[i]])
+      compile_P_x_regcalib_info[[i]] <- c(compile_P_x_regcalib_info[[i]], one_sim_informative$compile_P_x_regcalib[[i]])
+      compile_P_x_datafusion_info[[i]] <- c(compile_P_x_datafusion_info[[i]], one_sim_informative$compile_P_x_datafusion[[i]])
+      
+      compile_Corr_x_monsonly_info[[i]] <- c(compile_Corr_x_monsonly_info[[i]], one_sim_informative$compile_Corr_x_monsonly[[i]])
+      compile_Corr_x_regcalib_info[[i]] <- c(compile_Corr_x_regcalib_info[[i]], one_sim_informative$compile_Corr_x_regcalib[[i]])
+      compile_Corr_x_datafusion_info[[i]] <- c(compile_Corr_x_datafusion_info[[i]], one_sim_informative$compile_Corr_x_datafusion[[i]])
+      
+      # results for non-matching priors
+      
+      compile_I_x_monsonly_noninfo[[i]] <- c(compile_I_x_monsonly_noninfo[[i]], one_sim_noninformative$compile_I_x_monsonly[[i]])
+      compile_I_x_regcalib_noninfo[[i]] <- c(compile_I_x_regcalib_noninfo[[i]], one_sim_noninformative$compile_I_x_regcalib[[i]])
+      compile_I_x_datafusion_noninfo[[i]] <- c(compile_I_x_datafusion_noninfo[[i]], one_sim_noninformative$compile_I_x_datafusion[[i]])
+      
+      compile_I_x_v2_monsonly_noninfo[[i]] <- c(compile_I_x_v2_monsonly_noninfo[[i]], one_sim_noninformative$compile_I_x_v2_monsonly[[i]])
+      compile_I_x_v2_regcalib_noninfo[[i]] <- c(compile_I_x_v2_regcalib_noninfo[[i]], one_sim_noninformative$compile_I_x_v2_regcalib[[i]])
+      compile_I_x_v2_datafusion_noninfo[[i]] <- c(compile_I_x_v2_datafusion_noninfo[[i]], one_sim_noninformative$compile_I_x_v2_datafusion[[i]])
+      
+      compile_Ave_SD_monsonly_noninfo[[i]] <- c(compile_Ave_SD_monsonly_noninfo[[i]], one_sim_noninformative$compile_I_Ave_SD_monsonly[[i]])
+      compile_Ave_SD_regcalib_noninfo[[i]] <- c(compile_Ave_SD_regcalib_noninfo[[i]], one_sim_noninformative$compile_I_Ave_SD_regcalib[[i]])
+      compile_Ave_SD_datafus_noninfo[[i]] <- c(compile_Ave_SD_datafus_noninfo[[i]], one_sim_noninformative$compile_I_Ave_SD_datafusion[[i]])
+      
+      compile_P_x_monsonly_noninfo[[i]] <- c(compile_P_x_monsonly_noninfo[[i]], one_sim_noninformative$compile_P_x_monsonly[[i]])
+      compile_P_x_regcalib_noninfo[[i]] <- c(compile_P_x_regcalib_noninfo[[i]], one_sim_noninformative$compile_P_x_regcalib[[i]])
+      compile_P_x_datafusion_noninfo[[i]] <- c(compile_P_x_datafusion_noninfo[[i]], one_sim_noninformative$compile_P_x_datafusion[[i]])
+      
+      compile_Corr_x_monsonly_noninfo[[i]] <- c(compile_Corr_x_monsonly_noninfo[[i]], one_sim_noninformative$compile_Corr_x_monsonly[[i]])
+      compile_Corr_x_regcalib_noninfo[[i]] <- c(compile_Corr_x_regcalib_noninfo[[i]], one_sim_noninformative$compile_Corr_x_regcalib[[i]])
+      compile_Corr_x_datafusion_noninfo[[i]] <- c(compile_Corr_x_datafusion_noninfo[[i]], one_sim_noninformative$compile_Corr_x_datafusion[[i]])
+      
+      compile_index_model_info[[i]] <- c(compile_index_model_info[[i]], one_sim_informative$index_model[[i]])
+      compile_index_model_info[[i]] <- c(compile_index_model_info[[i]], one_sim_informative$index_model[[i]])
+      compile_index_model_noninfo[[i]] <- c(compile_index_model_noninfo[[i]], one_sim_noninformative$index_model[[i]])
+      
+    }  
+
+    # Compile all marginal log-likelihoods and BMA weights
+    for(i in 1:6){
+      compile_mlik_data1_info[[i]] <- c(compile_mlik_data1_info[[i]], one_sim_informative$compile_mlik_data1[[i]])
+      compile_mlik_data2_info[[i]] <- c(compile_mlik_data2_info[[i]], one_sim_informative$compile_mlik_data2[[i]])
+      compile_mlik_data3_info[[i]] <- c(compile_mlik_data3_info[[i]], one_sim_informative$compile_mlik_data3[[i]])
+      
+      compile_mlik_data1_noninfo[[i]] <- c(compile_mlik_data1_noninfo[[i]], one_sim_noninformative$compile_mlik_data1[[i]])
+      compile_mlik_data2_noninfo[[i]] <- c(compile_mlik_data2_noninfo[[i]], one_sim_noninformative$compile_mlik_data2[[i]])
+      compile_mlik_data3_noninfo[[i]] <- c(compile_mlik_data3_noninfo[[i]], one_sim_noninformative$compile_mlik_data3[[i]])
+      
+      compile_weights_data1_info[[i]] <- c(compile_weights_data1_info[[i]], one_sim_informative$compile_bmaweights_data1[[i]])
+      compile_weights_data2_info[[i]] <- c(compile_weights_data2_info[[i]], one_sim_informative$compile_bmaweights_data2[[i]])
+      compile_weights_data3_info[[i]] <- c(compile_weights_data3_info[[i]], one_sim_informative$compile_bmaweights_data3[[i]])
+      
+      compile_weights_data1_noninfo[[i]] <- c(compile_weights_data1_noninfo[[i]], one_sim_noninformative$compile_bmaweights_data1[[i]])
+      compile_weights_data2_noninfo[[i]] <- c(compile_weights_data2_noninfo[[i]], one_sim_noninformative$compile_bmaweights_data2[[i]])
+      compile_weights_data3_noninfo[[i]] <- c(compile_weights_data3_noninfo[[i]], one_sim_noninformative$compile_bmaweights_data3[[i]])     
+    }
+
+    # Compile all posterior estimates 
+    for(i in 1:3){
+      # Model-averaged posterior estimates for the proposed data fusion model
+      for(j in 1:8){
+        compile_paramestimates_datafusion_info[[i]][[j]] <- c(compile_paramestimates_datafusion_info[[i]][[j]],
+                                                              one_sim_informative$compile_paramestimates_datafusion[[i]][[j]])
+        compile_paramestimates_datafusion_noninfo[[i]][[j]] <- c(compile_paramestimates_datafusion_noninfo[[i]][[j]],
+                                                                 one_sim_noninformative$compile_paramestimates_datafusion[[i]][[j]])
+      }
+      # Posterior estimates for the stations-only model
+      for(j in 1:5){
+        compile_paramestimates_monsonly_info[[i]][[j]] <- c(compile_paramestimates_monsonly_info[[i]][[j]],
+                                                            one_sim_informative$compile_paramestimates_monsonly[[i]][[j]])
+        compile_paramestimates_monsonly_noninfo[[i]][[j]] <- c(compile_paramestimates_monsonly_noninfo[[i]][[j]],
+                                                               one_sim_noninformative$compile_paramestimates_monsonly[[i]][[j]])
+      }
+      # Posterior estimates for the regression calibration model
+      for(j in 1:6){
+        compile_paramestimates_regcalib_info[[i]][[j]] <- c(compile_paramestimates_regcalib_info[[i]][[j]],
+                                                          one_sim_informative$compile_paramestimates_regcalib[[i]][[j]])
+        compile_paramestimates_regcalib_noninfo[[i]][[j]] <- c(compile_paramestimates_regcalib_noninfo[[i]][[j]],
+                                                             one_sim_noninformative$compile_paramestimates_regcalib[[i]][[j]])
+    }
+  }
+  
+  }
+  
+  return(out = list(compile_I_x_monsonly_info = compile_I_x_monsonly_info,
+                    compile_I_x_regcalib_info = compile_I_x_regcalib_info,
+                    compile_I_x_datafusion_info = compile_I_x_datafusion_info,
+
+                    compile_I_x_v2_monsonly_info = compile_I_x_v2_monsonly_info,
+                    compile_I_x_v2_regcalib_info = compile_I_x_v2_regcalib_info,
+                    compile_I_x_v2_datafusion_info = compile_I_x_v2_datafusion_info,
+                    
+                    compile_Ave_SD_monsonly_info = compile_Ave_SD_monsonly_info,
+                    compile_Ave_SD_regcalib_info = compile_Ave_SD_regcalib_info,
+                    compile_Ave_SD_datafus_info = compile_Ave_SD_datafus_info,
+                    
+                    compile_P_x_monsonly_info = compile_P_x_monsonly_info,
+                    compile_P_x_regcalib_info = compile_P_x_regcalib_info,
+                    compile_P_x_datafusion_info = compile_P_x_datafusion_info,
+                    
+                    compile_Corr_x_monsonly_info = compile_Corr_x_monsonly_info,
+                    compile_Corr_x_regcalib_info = compile_Corr_x_regcalib_info,
+                    compile_Corr_x_datafusion_info = compile_Corr_x_datafusion_info,
+                  
+                    compile_I_x_monsonly_noninfo = compile_I_x_monsonly_noninfo,
+                    compile_I_x_regcalib_noninfo = compile_I_x_regcalib_noninfo,
+                    compile_I_x_datafusion_noninfo = compile_I_x_datafusion_noninfo,
+                    
+                    compile_I_x_v2_monsonly_noninfo = compile_I_x_v2_monsonly_noninfo,
+                    compile_I_x_v2_regcalib_noninfo = compile_I_x_v2_regcalib_noninfo,
+                    compile_I_x_v2_datafusion_noninfo = compile_I_x_v2_datafusion_noninfo,
+                    
+                    compile_Ave_SD_monsonly_noninfo = compile_Ave_SD_monsonly_noninfo,
+                    compile_Ave_SD_regcalib_noninfo = compile_Ave_SD_regcalib_noninfo,
+                    compile_Ave_SD_datafus_noninfo = compile_Ave_SD_datafus_noninfo,
+                    
+                    compile_P_x_monsonly_noninfo = compile_P_x_monsonly_noninfo,
+                    compile_P_x_regcalib_noninfo = compile_P_x_regcalib_noninfo,
+                    compile_P_x_datafusion_noninfo = compile_P_x_datafusion_noninfo,
+                    
+                    compile_Corr_x_monsonly_noninfo = compile_Corr_x_monsonly_noninfo,
+                    compile_Corr_x_regcalib_noninfo = compile_Corr_x_regcalib_noninfo,
+                    compile_Corr_x_datafusion_noninfo = compile_Corr_x_datafusion_noninfo,
+                    
+                    compile_paramestimates_datafusion_info = compile_paramestimates_datafusion_info,
+                    compile_paramestimates_datafusion_noninfo = compile_paramestimates_datafusion_noninfo,
+                    compile_paramestimates_regcalib_info = compile_paramestimates_regcalib_info,
+                    compile_paramestimates_regcalib_noninfo = compile_paramestimates_regcalib_noninfo,
+                    compile_paramestimates_monsonly_info = compile_paramestimates_monsonly_info,
+                    compile_paramestimates_monsonly_noninfo = compile_paramestimates_monsonly_noninfo,
+                    
+                    compile_mlik_data1_info = compile_mlik_data1_info,
+                    compile_mlik_data2_info = compile_mlik_data2_info,
+                    compile_mlik_data3_info = compile_mlik_data3_info,
+                    compile_mlik_data1_noninfo = compile_mlik_data1_noninfo,
+                    compile_mlik_data2_noninfo = compile_mlik_data2_noninfo,
+                    compile_mlik_data3_noninfo = compile_mlik_data3_noninfo,
+                    compile_weights_data1_info = compile_weights_data1_info,
+                    compile_weights_data2_info = compile_weights_data2_info,
+                    compile_weights_data3_info = compile_weights_data3_info,
+                    compile_weights_data1_noninfo = compile_weights_data1_noninfo,
+                    compile_weights_data2_noninfo = compile_weights_data2_noninfo,
+                    compile_weights_data3_noninfo = compile_weights_data3_noninfo,
+                    compile_index_model_info = compile_index_model_info,
+                    compile_index_model_noninfo = compile_index_model_noninfo))
+  
+}
+
+
+
