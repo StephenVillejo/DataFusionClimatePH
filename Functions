@@ -23,10 +23,12 @@ Sim_Data_Ortho_error_v3 <- function(true.vals){
                        cutoff=0.022, 
                        offset=c(0.17, 0.685)) 
   
-
-  load(file="/Users/stephenjunvillejo/Documents/Phd Studies - University of Glasgow/PhD Dissert/Model runs/R/INLABRU/Simulations/RegressionCalibration/utils/px.Rdata")
+  ## Simulation grid
+  load(file="px2.Rdata")
   px <- st_as_sf(px)
   locs = st_coordinates(px)
+
+  ## Simulate the spatial field 
   nu = 1
   kappa = sqrt(8*nu)/true.vals$stage_1$rho 
   omega = book.rMatern(n = 1, 
@@ -38,7 +40,7 @@ Sim_Data_Ortho_error_v3 <- function(true.vals){
                        nu = nu)
   px$omega = as.matrix(omega)
   
-  # simulate the covariate z(s)
+  ## Simulate the covariate field z(s)
   set.seed(4321)
   cov.field = book.rMatern(n = 1, 
                            coords = locs, 
@@ -50,10 +52,12 @@ Sim_Data_Ortho_error_v3 <- function(true.vals){
   cov.field <- data.frame(as.matrix(cov.field))
   colnames(cov.field) <- "z"
   px$z = (cov.field$z - min(cov.field$z))
+
+  ## Simulate the latent field of interest x(s)
   px$xvar = true.vals$stage_1$beta0 + (true.vals$stage_1$beta1 * px$z) + (px$omega)
   
   
-  # Simulate error field
+  ## Simulate error field
   set.seed(Sys.time())
   kappa = sqrt(8*nu)/true.vals$stage_1$rho.error 
   error.field = book.rMatern(n = 1, 
@@ -66,12 +70,13 @@ Sim_Data_Ortho_error_v3 <- function(true.vals){
   error.field = as.vector(error.field)
   px$error = error.field
   
-  # observed values at the numerical models
+  ## Simulated observed values at the numerical models or satellite data (to be sampled to coarser resolution)
   px$satellite = (true.vals$stage_1$alpha1 * px$xvar) + px$error + rnorm(length(px$xvar), mean = 0, sd = 0.01)
-  # observed values at (to be sampled) monitors
+  
+  ## Simulated "observed" values at stations (this will be randomly sampled later)
   px$w = px$xvar + rnorm(length(px$xvar), mean = 0, sd = true.vals$stage_1$sigma_e)
   
-  # create the coarse data for the numerical model
+  ## Create the coarse data for the numerical model or satellite data
   new_px_data <- px[seq(1, nrow(px), 2),]
   coords.y <- unique(st_coordinates(new_px_data)[,2])
   coords.y <- data.frame(coords.y = coords.y,
@@ -80,13 +85,9 @@ Sim_Data_Ortho_error_v3 <- function(true.vals){
   new_px_data <- left_join(new_px_data,
                            coords.y,
                            by = "coords.y")
-  
   new_px_data <- new_px_data[-which(new_px_data$ind %in% seq(2,66,by=2)),]
   
-  
-  
-  
-  # observed values at the monitors
+  ## Simulated the observed values at stations 
   monitors_data <- parallel::mclapply(seq(n_monitors_vec), function(x){
     set.seed(1)
     sample_points <- spsample(as(areas,"Spatial"),
@@ -94,7 +95,6 @@ Sim_Data_Ortho_error_v3 <- function(true.vals){
                               type = "random")
     sample_points <- st_as_sf(sample_points)
   }, mc.set.seed = TRUE, mc.cores = ncores)
-  
   for(i in 1:length(n_monitors_vec)){
     monitors_data[[i]] <- px[st_nearest_feature(monitors_data[[i]], px),]
   }
@@ -104,5 +104,4 @@ Sim_Data_Ortho_error_v3 <- function(true.vals){
                     numerical_models_data = new_px_data,
                     areas = areas,
                     mesh = mesh))
-  
 }
