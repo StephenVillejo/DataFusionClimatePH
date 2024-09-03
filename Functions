@@ -30,7 +30,7 @@ Sim_Data_Ortho_error_v3 <- function(true.vals){
                        offset=c(0.17, 0.685)) 
   
   ## Simulation grid
-  load(file="px2.Rdata")
+  load(file=paste0(getwd(),"/px2.Rdata"))
   px <- st_as_sf(px)
   locs = st_coordinates(px)
 
