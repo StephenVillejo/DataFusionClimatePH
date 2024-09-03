@@ -1,4 +1,4 @@
-
+# Simulate a Matern field
 book.rMatern <- function(n, coords, sigma=1, range, kappa = sqrt(8*nu)/range, variance = sigma^2, nu=1) {
   m <- as.matrix(dist(coords))
   m <- exp((1-nu)*log(2) + nu*log(kappa*m)-
@@ -6,4 +6,102 @@ book.rMatern <- function(n, coords, sigma=1, range, kappa = sqrt(8*nu)/range, va
   diag(m) <- 1
   return(drop(crossprod(chol(variance*m),
                         matrix(rnorm(nrow(coords)*n), ncol=n))))
+}
+
+Sim_Data_Ortho_error_v3 <- function(true.vals){
+  
+  ## Load the shapefile
+  areas = st_read(system.file("etc/shapes/bhicv.shp",
+                              package="spdep")[1])
+  ## Build the mesh:
+  mesh <- inla.mesh.2d(boundary=areas,
+                       max.edge=c(0.075, 0.5),
+                       min.angle=c(30, 21),
+                       max.n=c(48000, 16000), 
+                       max.n.strict=c(128000, 128000), 
+                       cutoff=0.022, 
+                       offset=c(0.17, 0.685)) 
+  
+
+  load(file="/Users/stephenjunvillejo/Documents/Phd Studies - University of Glasgow/PhD Dissert/Model runs/R/INLABRU/Simulations/RegressionCalibration/utils/px.Rdata")
+  px <- st_as_sf(px)
+  locs = st_coordinates(px)
+  nu = 1
+  kappa = sqrt(8*nu)/true.vals$stage_1$rho 
+  omega = book.rMatern(n = 1, 
+                       coords = locs, 
+                       sigma = 1, 
+                       range = true.vals$stage_1$rho, 
+                       kappa = kappa, 
+                       variance = true.vals$stage_1$sigma_omega^2, 
+                       nu = nu)
+  px$omega = as.matrix(omega)
+  
+  # simulate the covariate z(s)
+  set.seed(4321)
+  cov.field = book.rMatern(n = 1, 
+                           coords = locs, 
+                           sigma = 1, 
+                           range = 3, 
+                           kappa = sqrt(8)/3, 
+                           variance = 3, 
+                           nu = nu)
+  cov.field <- data.frame(as.matrix(cov.field))
+  colnames(cov.field) <- "z"
+  px$z = (cov.field$z - min(cov.field$z))
+  px$xvar = true.vals$stage_1$beta0 + (true.vals$stage_1$beta1 * px$z) + (px$omega)
+  
+  
+  # Simulate error field
+  set.seed(Sys.time())
+  kappa = sqrt(8*nu)/true.vals$stage_1$rho.error 
+  error.field = book.rMatern(n = 1, 
+                             coords = locs, 
+                             sigma = 1, 
+                             range = true.vals$stage_1$rho.error, 
+                             kappa = kappa, 
+                             variance = true.vals$stage_1$sigma_error^2, 
+                             nu = nu)
+  error.field = as.vector(error.field)
+  px$error = error.field
+  
+  # observed values at the numerical models
+  px$satellite = (true.vals$stage_1$alpha1 * px$xvar) + px$error + rnorm(length(px$xvar), mean = 0, sd = 0.01)
+  # observed values at (to be sampled) monitors
+  px$w = px$xvar + rnorm(length(px$xvar), mean = 0, sd = true.vals$stage_1$sigma_e)
+  
+  # create the coarse data for the numerical model
+  new_px_data <- px[seq(1, nrow(px), 2),]
+  coords.y <- unique(st_coordinates(new_px_data)[,2])
+  coords.y <- data.frame(coords.y = coords.y,
+                         ind = 1:length(coords.y))
+  new_px_data$coords.y <- st_coordinates(new_px_data)[,2]
+  new_px_data <- left_join(new_px_data,
+                           coords.y,
+                           by = "coords.y")
+  
+  new_px_data <- new_px_data[-which(new_px_data$ind %in% seq(2,66,by=2)),]
+  
+  
+  
+  
+  # observed values at the monitors
+  monitors_data <- parallel::mclapply(seq(n_monitors_vec), function(x){
+    set.seed(1)
+    sample_points <- spsample(as(areas,"Spatial"),
+                              n = n_monitors_vec[x],
+                              type = "random")
+    sample_points <- st_as_sf(sample_points)
+  }, mc.set.seed = TRUE, mc.cores = ncores)
+  
+  for(i in 1:length(n_monitors_vec)){
+    monitors_data[[i]] <- px[st_nearest_feature(monitors_data[[i]], px),]
+  }
+  
+  return(out = list(px = px,
+                    monitors_data = monitors_data,
+                    numerical_models_data = new_px_data,
+                    areas = areas,
+                    mesh = mesh))
+  
 }
