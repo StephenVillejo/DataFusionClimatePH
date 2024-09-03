@@ -15,7 +15,7 @@ book.rMatern <- function(n, coords, sigma=1, range, kappa = sqrt(8*nu)/range, va
 # Simulate data
 ########################################################################
 
-Sim_Data_Ortho_error_v3 <- function(true.vals = true.vals){
+Sim_Data_Ortho_error_v3 <- function(){
   
   ## Load the shapefile
   areas = st_read(system.file("etc/shapes/bhicv.shp",
